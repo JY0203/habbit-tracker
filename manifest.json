@@ -1,0 +1,22 @@
+{
+  "name": "Habit Tracker",
+  "short_name": "Habits",
+  "description": "每日習慣追蹤器",
+  "start_url": "/habbit-tracker/",
+  "display": "standalone",
+  "background_color": "#f5f5f3",
+  "theme_color": "#2a78d6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Habits">
+<meta name="theme-color" content="#2a78d6">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Habit Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f3; --surface: #ffffff; --surface-2: #f9f9f8;
+    --border: rgba(0,0,0,0.10); --border-strong: rgba(0,0,0,0.18);
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --accent: #2a78d6; --radius: 8px; --grid-line: #e1e0d9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413; --surface: #1e1e1c; --surface-2: #252523;
+      --border: rgba(255,255,255,0.10); --border-strong: rgba(255,255,255,0.18);
+      --text-primary: #f0efeb; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --accent: #3987e5; --grid-line: #2c2c2a;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text-primary);
+    min-height: 100vh; padding: 24px 16px;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 13px; font-weight: 500; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 20px; }
+  .header-row { display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+  .month-nav { display: flex; align-items: center; gap: 10px; }
+  .month-title { font-size: 18px; font-weight: 500; color: var(--text-primary);
+    min-width: 130px; text-align: center; }
+  .btn-group { display: flex; gap: 8px; }
+  button { background: var(--surface); border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius); padding: 6px 12px; cursor: pointer;
+    color: var(--text-secondary); font-size: 13px; display: inline-flex;
+    align-items: center; gap: 5px; font-family: inherit; transition: background 0.12s; }
+  button:hover { background: var(--surface-2); }
+  button.danger { color: #e24b4a; border-color: #e24b4a; }
+  button.danger:hover { background: #fff0f0; }
+  .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 8px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border-radius: var(--radius);
+    border: 0.5px solid var(--border); padding: 10px 14px; }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 500; color: var(--text-primary); }
+  .grid-wrapper { background: var(--surface); border-radius: 12px;
+    border: 0.5px solid var(--border); padding: 12px; overflow-x: auto; margin-bottom: 16px; }
+  table { border-collapse: collapse; width: 100%; }
+  .col-habit { text-align: left; min-width: 110px; max-width: 140px;
+    padding: 5px 12px 5px 4px; font-size: 12px; font-weight: 500;
+    color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .col-day { width: 22px; min-width: 22px; text-align: center; }
+  .row-header th, .row-date th { font-size: 10px; font-weight: 400;
+    color: var(--text-muted); padding-bottom: 5px; text-align: center; }
+  .today-col-header { color: var(--accent) !important; font-weight: 500 !important; }
+  .habit-row td { border-top: 0.5px solid var(--grid-line); padding: 3px 0; }
+  .cb { width: 18px; height: 18px; border: 1.5px solid var(--border-strong);
+    border-radius: 4px; cursor: pointer; margin: 2px auto; display: flex;
+    align-items: center; justify-content: center; background: var(--surface-2);
+    transition: background 0.1s, border-color 0.1s; }
+  .cb.checked { background: var(--accent); border-color: var(--accent); }
+  .cb.checked::after { content: ''; display: block; width: 5px; height: 9px;
+    border: 2px solid #fff; border-top: none; border-left: none;
+    transform: rotate(45deg) translateY(-1px); }
+  .cb.future { opacity: 0.3; cursor: default; pointer-events: none; }
+  .cb.today-ring { border-color: var(--accent); }
+  .pct-cell { font-size: 11px; color: var(--text-muted); padding-left: 10px;
+    text-align: right; min-width: 34px; white-space: nowrap; }
+  .delete-cell { width: 20px; text-align: center; cursor: pointer; opacity: 0; }
+  .habit-row:hover .delete-cell { opacity: 1; }
+  .delete-cell i { font-size: 13px; color: var(--text-muted); }
+  .delete-cell:hover i { color: #e24b4a; }
+  .charts-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .chart-card { background: var(--surface); border-radius: 12px;
+    border: 0.5px solid var(--border); padding: 16px; }
+  .chart-title { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 12px; }
+  .overall-wrap { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 4px 0; }
+  .ring-text { text-align: center; }
+  .ring-value { font-size: 32px; font-weight: 500; color: var(--text-primary); }
+  .ring-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .bar-label { font-size: 11px; color: var(--text-secondary); width: 90px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 7px; background: var(--grid-line); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.3s; }
+  .bar-pct { font-size: 11px; color: var(--text-muted); width: 30px; text-align: right; flex-shrink: 0; }
+  .empty-habits { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Habit Tracker</h1>
+  <div class="header-row">
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)" aria-label="上個月"><i class="ti ti-chevron-left"></i></button>
+      <div class="month-title" id="monthTitle"></div>
+      <button onclick="changeMonth(1)" aria-label="下個月"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div class="btn-group">
+      <button onclick="addHabit()"><i class="ti ti-plus"></i> 新增習慣</button>
+      <button class="danger" onclick="clearData()"><i class="ti ti-trash"></i> 清除資料</button>
+    </div>
+  </div>
+  <div class="summary-row" id="summaryRow"></div>
+  <div class="grid-wrapper"><table id="habitTable"></table></div>
+  <div class="charts-section">
+    <div class="chart-card">
+      <div class="chart-title">本月整體完成率</div>
+      <div class="overall-wrap">
+        <canvas id="donutChart" width="90" height="90"></canvas>
+        <div class="ring-text">
+          <div class="ring-value" id="overallPct">0%</div>
+          <div class="ring-label">整體</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">各習慣完成率</div>
+      <div id="barCharts"></div>
+    </div>
+  </div>
+</div>
+<script>
+const DAYS_TW = ['日','一','二','三','四','五','六'];
+const MONTH_NAMES = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+const DEFAULT_HABITS = ['健身','閱讀','睡前伸展','K8s 學習'];
+const LS_KEY = 'habit_tracker_v1';
+
+let state = { habits: [], data: {}, year: 0, month: 0 };
+
+function load() {
+  const now = new Date();
+  state.year = now.getFullYear(); state.month = now.getMonth();
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (saved) { state.habits = saved.habits || DEFAULT_HABITS; state.data = saved.data || {}; }
+    else { state.habits = [...DEFAULT_HABITS]; state.data = {}; }
+  } catch(e) { state.habits = [...DEFAULT_HABITS]; state.data = {}; }
+  render();
+}
+
+function save() { localStorage.setItem(LS_KEY, JSON.stringify({ habits: state.habits, data: state.data })); }
+function getDays(y, m) { return new Date(y, m+1, 0).getDate(); }
+function key(d, h) { return `${state.year}-${state.month}-${d}-${h}`; }
+function isChecked(d, h) { return !!state.data[key(d, h)]; }
+
+function toggle(d, h) { state.data[key(d,h)] = !state.data[key(d,h)]; save(); render(); }
+function changeMonth(delta) {
+  state.month += delta;
+  if (state.month > 11) { state.month = 0; state.year++; }
+  if (state.month < 0)  { state.month = 11; state.year--; }
+  render();
+}
+function addHabit() {
+  const name = prompt('新習慣名稱：');
+  if (name && name.trim()) { state.habits.push(name.trim()); save(); render(); }
+}
+function deleteHabit(idx) {
+  if (!confirm(`刪除「${state.habits[idx]}」？`)) return;
+  state.habits.splice(idx, 1); save(); render();
+}
+function clearData() {
+  if (!confirm('確定要清除所有資料？此動作無法復原。')) return;
+  localStorage.removeItem(LS_KEY); load();
+}
+
+function render() {
+  const now = new Date();
+  const isCurrent = now.getFullYear() === state.year && now.getMonth() === state.month;
+  const today = now.getDate();
+  const days = getDays(state.year, state.month);
+  const passedDays = isCurrent ? today : days;
+
+  document.getElementById('monthTitle').textContent = `${state.year} / ${MONTH_NAMES[state.month]}`;
+
+  let totalChecks = 0, totalPossible = state.habits.length * passedDays;
+  state.habits.forEach(h => { for (let d = 1; d <= passedDays; d++) if (isChecked(d,h)) totalChecks++; });
+  const overall = totalPossible > 0 ? Math.round(totalChecks / totalPossible * 100) : 0;
+  const todayDone = state.habits.filter(h => isChecked(today, h)).length;
+
+  document.getElementById('summaryRow').innerHTML = `
+    <div class="stat-card"><div class="stat-label">整體完成率</div><div class="stat-value">${overall}%</div></div>
+    <div class="stat-card"><div class="stat-label">今日完成</div><div class="stat-value">${isCurrent ? todayDone : '-'}/${state.habits.length}</div></div>
+    <div class="stat-card"><div class="stat-label">已追蹤天數</div><div class="stat-value">${passedDays}</div></div>
+    <div class="stat-card"><div class="stat-label">習慣數量</div><div class="stat-value">${state.habits.length}</div></div>`;
+
+  if (state.habits.length === 0) {
+    document.getElementById('habitTable').innerHTML = `<tr><td class="empty-habits">還沒有習慣，點「新增習慣」開始吧</td></tr>`;
+  } else {
+    let html = `<thead><tr class="row-header"><th class="col-habit"></th>`;
+    for (let d = 1; d <= days; d++) {
+      const dow = new Date(state.year, state.month, d).getDay();
+      html += `<th class="col-day${isCurrent&&d===today?' today-col-header':''}">${DAYS_TW[dow]}</th>`;
+    }
+    html += `<th class="pct-cell"></th><th style="width:20px"></th></tr>
+      <tr class="row-date"><th class="col-habit" style="color:var(--text-muted);font-size:11px;">HABITS</th>`;
+    for (let d = 1; d <= days; d++) {
+      html += `<th class="col-day${isCurrent&&d===today?' today-col-header':''}">${d}</th>`;
+    }
+    html += `<th class="pct-cell"></th><th></th></tr></thead><tbody>`;
+
+    state.habits.forEach((habit, hi) => {
+      let checked = 0;
+      html += `<tr class="habit-row"><td class="col-habit" title="${habit}">${habit}</td>`;
+      for (let d = 1; d <= days; d++) {
+        const isFuture = isCurrent && d > today;
+        const chk = isChecked(d, habit);
+        if (chk) checked++;
+        const cls = ['cb', chk?'checked':'', isFuture?'future':'',
+          (isCurrent&&d===today&&!chk)?'today-ring':''].filter(Boolean).join(' ');
+        html += `<td><div class="${cls}" onclick="toggle(${d},'${habit.replace(/'/g,"\\'")}')"
+          role="checkbox" aria-checked="${chk}"></div></td>`;
+      }
+      const pct = passedDays > 0 ? Math.round(checked / passedDays * 100) : 0;
+      html += `<td class="pct-cell">${pct}%</td>
+        <td class="delete-cell" onclick="deleteHabit(${hi})" title="刪除"><i class="ti ti-trash"></i></td></tr>`;
+    });
+    html += '</tbody>';
+    document.getElementById('habitTable').innerHTML = html;
+  }
+
+  document.getElementById('overallPct').textContent = overall + '%';
+  drawDonut(overall);
+  document.getElementById('barCharts').innerHTML = state.habits.map(habit => {
+    let checked = 0;
+    for (let d = 1; d <= passedDays; d++) if (isChecked(d, habit)) checked++;
+    const pct = passedDays > 0 ? Math.round(checked / passedDays * 100) : 0;
+    return `<div class="bar-row">
+      <div class="bar-label" title="${habit}">${habit}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-pct">${pct}%</div></div>`;
+  }).join('');
+}
+
+function drawDonut(pct) {
+  const canvas = document.getElementById('donutChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  ctx.clearRect(0, 0, 90, 90);
+  ctx.beginPath(); ctx.arc(45,45,32,0,Math.PI*2);
+  ctx.strokeStyle = dark ? '#2c2c2a' : '#e1e0d9'; ctx.lineWidth = 10; ctx.stroke();
+  if (pct > 0) {
+    ctx.beginPath(); ctx.arc(45,45,32,-Math.PI/2,-Math.PI/2+(pct/100)*Math.PI*2);
+    ctx.strokeStyle = dark ? '#3987e5' : '#2a78d6';
+    ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.stroke();
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
+  });
+}
+
+load();
+</script>
+</body>
+</html>
