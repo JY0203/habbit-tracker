@@ -44,6 +44,11 @@
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 560px; margin: 0 auto; padding: 0 18px; }
+  @media (min-width: 820px) {
+    .wrap { max-width: 920px; padding: 0 28px; }
+    .hero-day { font-size: 40px; }
+    .hero-ring, .hero-ring canvas { width: 84px; height: 84px; }
+  }
 
   /* Top bar */
   .topbar { display: flex; align-items: center; justify-content: space-between; padding: 22px 0 14px; }
@@ -64,7 +69,8 @@
     align-items: center; justify-content: center; }
   .hero-ring-frac { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
 
-  .habit-list { display: flex; flex-direction: column; gap: 10px; }
+  .habit-list { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 820px) { .habit-list { grid-template-columns: 1fr 1fr; gap: 12px; } }
   .habit-card { display: flex; align-items: center; gap: 14px; background: var(--surface);
     border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px 18px;
     box-shadow: var(--shadow); cursor: pointer; transition: transform 0.12s, border-color 0.15s;
@@ -290,7 +296,7 @@ function renderToday() {
       <canvas id="heroRing" width="72" height="72"></canvas>
       <div class="hero-ring-label"><div class="hero-ring-frac">${done}/${total}</div></div>
     </div>`;
-  drawRing('heroRing', pct, 72);
+  drawRing('heroRing', pct);
 
   const body = document.getElementById('todayBody');
   if (total === 0) {
@@ -396,9 +402,13 @@ function renderHistory() {
   }).join('');
 }
 
-function drawRing(id, pct, size) {
+function drawRing(id, pct) {
   const cv = document.getElementById(id); if (!cv) return;
+  const dpr = window.devicePixelRatio || 1;
+  const size = cv.clientWidth || 72;
+  cv.width = size * dpr; cv.height = size * dpr;
   const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
   const cs = getComputedStyle(document.documentElement);
   const track = cs.getPropertyValue('--grid-line').trim() || '#e8e7df';
   const fill = cs.getPropertyValue('--accent').trim() || '#3f9d6b';
