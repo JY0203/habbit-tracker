@@ -385,14 +385,15 @@ function renderHistory() {
   const isCur = now.getFullYear()===state.year && now.getMonth()===state.month;
   const today = now.getDate();
   const days = getDays(state.year, state.month);
-  const passed = isCur ? today : days;
 
   document.getElementById('monthTitle').textContent = `${state.year} / ${MONTH_NAMES[state.month]}`;
 
-  let totalChecks = 0;
-  state.habits.forEach(h => { for (let d=1; d<=passed; d++) if (checkedOn(state.year,state.month,d,h)) totalChecks++; });
-  const possible = state.habits.length * passed;
-  const overall = possible ? Math.round(totalChecks/possible*100) : 0;
+  // denominator = total days in the displayed month (monthly progress)
+  const denomFor = () => days;
+  const numerFor = h => { let c=0; for (let d=1; d<=days; d++) if (checkedOn(state.year,state.month,d,h)) c++; return c; };
+  let totalNum = 0, totalDen = 0;
+  state.habits.forEach(h => { totalNum += numerFor(h); totalDen += denomFor(h); });
+  const overall = totalDen ? Math.round(totalNum/totalDen*100) : 0;
   const bestStreak = state.habits.reduce((mx,h)=>Math.max(mx, streakOf(h)), 0);
 
   document.getElementById('statStrip').innerHTML = `
@@ -423,15 +424,16 @@ function renderHistory() {
       const cls = ['cb', chk?'checked':'', future?'future':'', (isCur&&d===today&&!chk)?'today-ring':''].filter(Boolean).join(' ');
       html += `<td><div class="${cls}" onclick="toggleOn(${state.year},${state.month},${d},'${h.replace(/'/g,"\\'")}')"></div></td>`;
     }
-    const pct = passed ? Math.round(c/passed*100) : 0;
+    const den = denomFor();
+    const pct = den ? Math.round(c/den*100) : 0;
     html += `<td class="pct-cell">${pct}%</td></tr>`;
   });
   html += `</tbody>`;
   table.innerHTML = html;
 
   document.getElementById('barCharts').innerHTML = state.habits.map(h => {
-    let c = 0; for (let d=1; d<=passed; d++) if (checkedOn(state.year,state.month,d,h)) c++;
-    const pct = passed ? Math.round(c/passed*100) : 0;
+    const c = numerFor(h), den = denomFor();
+    const pct = den ? Math.round(c/den*100) : 0;
     return `<div class="bar-row">
       <div class="bar-label" title="${h}">${h}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
