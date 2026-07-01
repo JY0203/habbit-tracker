@@ -95,6 +95,9 @@
   body.editing .check-btn { display: none; }
   body.editing .habit-card { cursor: default; }
   body.editing .habit-card:active { transform: none; }
+  .rename-input { font-family: inherit; font-size: 16px; font-weight: 600; color: var(--text);
+    background: var(--surface-2); border: 1.5px solid var(--accent); border-radius: 8px;
+    padding: 7px 10px; width: 100%; outline: none; letter-spacing: -0.01em; }
 
   .add-row { display: flex; gap: 8px; margin-top: 16px; }
   .add-btn { flex: 1; border: 1.5px dashed var(--border-strong); background: none; border-radius: var(--radius);
@@ -273,6 +276,39 @@ function deleteHabit(idx) {
   if (!confirm(`刪除「${state.habits[idx]}」？該習慣的紀錄會一併移除。`)) return;
   state.habits.splice(idx, 1); save(); render();
 }
+
+function escAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// rename a habit and migrate its check history to the new name
+function renameHabit(idx, raw) {
+  const newName = (raw || '').trim();
+  const oldName = state.habits[idx];
+  if (!newName || newName === oldName) { render(); return; }
+  if (state.habits.includes(newName)) { alert('已有相同名稱的習慣'); render(); return; }
+  const suffix = '-' + oldName;
+  const migrated = {};
+  for (const k in state.data) {
+    if (k.endsWith(suffix)) {
+      migrated[k.slice(0, k.length - suffix.length) + '-' + newName] = state.data[k];
+    } else {
+      migrated[k] = state.data[k];
+    }
+  }
+  state.data = migrated;
+  state.habits[idx] = newName;
+  save(); render();
+}
+
+// re-render when the calendar day changes (app left open across midnight)
+let lastDay = new Date().toDateString();
+function checkDayRollover() {
+  const now = new Date().toDateString();
+  if (now !== lastDay) { lastDay = now; render(); }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDayRollover(); });
+setInterval(checkDayRollover, 60000);
 function clearData() {
   if (!confirm('清除所有習慣與紀錄？此動作無法復原。')) return;
   state.habits = []; state.data = {}; save(); render();
@@ -321,11 +357,12 @@ function renderToday() {
     const st = streakOf(h);
     const meta = st > 0 ? `<span class="streak"><i class="ti ti-flame"></i> 連續 ${st} 天</span>`
                         : `<span>今天還沒打卡</span>`;
+    const nameHTML = editing
+      ? `<input class="rename-input" value="${escAttr(h)}" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')this.blur()" onchange="renameHabit(${i}, this.value)">`
+      : `<div class="habit-name">${h}</div>
+         <div class="habit-meta">${isDone?'<span class="streak"><i class="ti ti-check"></i> 今天完成</span>':meta}</div>`;
     return `<div class="habit-card ${isDone?'done':''}" onclick="${editing?'':`toggleOn(${y},${m},${d},'${h.replace(/'/g,"\\'")}')`}">
-      <div class="habit-info">
-        <div class="habit-name">${h}</div>
-        <div class="habit-meta">${isDone?'<span class="streak"><i class="ti ti-check"></i> 今天完成</span>':meta}</div>
-      </div>
+      <div class="habit-info">${nameHTML}</div>
       <div class="check-btn"><i class="ti ti-check"></i></div>
       <button class="del-btn" onclick="event.stopPropagation();deleteHabit(${i})"><i class="ti ti-x"></i></button>
     </div>`;
